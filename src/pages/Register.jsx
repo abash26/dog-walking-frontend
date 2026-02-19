@@ -6,6 +6,8 @@ import {
   Paper,
   Alert,
   Box,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import { useState } from 'react';
 import { useRegisterMutation } from '../features/auth/authApi';
@@ -19,9 +21,11 @@ export default function Register() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
+    name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'Owner',
   });
 
   const handleSubmit = async (e) => {
@@ -34,8 +38,10 @@ export default function Register() {
 
     try {
       const result = await register({
+        name: form.name,
         email: form.email,
         password: form.password,
+        role: form.role,
       }).unwrap();
 
       dispatch(setCredentials(result.token));
@@ -58,7 +64,34 @@ export default function Register() {
           </Alert>
         )}
 
+        <Typography sx={{ mt: 2, mb: 1 }}>I am joining as:</Typography>
+
+        <ToggleButtonGroup
+          color='primary'
+          value={form.role}
+          exclusive
+          fullWidth
+          onChange={(e, value) => {
+            if (value !== null) {
+              setForm({ ...form, role: value });
+            }
+          }}
+          sx={{ mb: 2 }}
+        >
+          <ToggleButton value='Owner'>🐶 Pet Parent</ToggleButton>
+          <ToggleButton value='Walker'>🦮 Dog Walker</ToggleButton>
+        </ToggleButtonGroup>
+
         <Box component='form' onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label='Name'
+            margin='normal'
+            required
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+
           <TextField
             fullWidth
             label='Email'
