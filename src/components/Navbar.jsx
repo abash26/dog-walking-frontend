@@ -4,9 +4,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../features/auth/authSlice';
 
 export default function Navbar() {
-  const token = useSelector((state) => state.auth.token);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const { token, role } = useSelector((state) => state.auth);
 
   return (
     <AppBar position='static'>
@@ -17,15 +18,33 @@ export default function Navbar() {
 
         {token ? (
           <>
-            <Button color='inherit' component={Link} to='/'>
+            <Button
+              color='inherit'
+              component={Link}
+              to={role === 'Owner' ? '/owner' : '/walker'}
+            >
               Dashboard
             </Button>
-            <Button color='inherit' component={Link} to='/dogs'>
-              Dogs
-            </Button>
-            <Button color='inherit' component={Link} to='/walks'>
-              Walks
-            </Button>
+            {role === 'Owner' && (
+              <>
+                <Button color='inherit' component={Link} to='/dogs'>
+                  Dogs
+                </Button>
+                <Button color='inherit' component={Link} to='/walks'>
+                  Walks
+                </Button>
+              </>
+            )}
+            {role === 'Walker' && (
+              <>
+                <Button color='inherit' component={Link} to='/available-walks'>
+                  Available Walks
+                </Button>
+                <Button color='inherit' component={Link} to='/my-walks'>
+                  My Walks
+                </Button>
+              </>
+            )}
             <Button
               color='inherit'
               onClick={() => {

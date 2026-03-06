@@ -1,21 +1,16 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { baseQuery } from '../baseApi';
 
 export const dogsApi = createApi({
   reducerPath: 'dogsApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: 'https://localhost:7188/',
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      return headers;
-    },
-  }),
+  baseQuery,
   tagTypes: ['Dogs'],
   endpoints: (builder) => ({
     getDogs: builder.query({
       query: () => 'dogs',
       providesTags: ['Dogs'],
     }),
+
     createDog: builder.mutation({
       query: (dog) => ({
         url: 'dogs',
@@ -24,6 +19,7 @@ export const dogsApi = createApi({
       }),
       invalidatesTags: ['Dogs'],
     }),
+
     updateDog: builder.mutation({
       query: ({ id, ...body }) => ({
         url: `dogs/${id}`,
@@ -32,6 +28,7 @@ export const dogsApi = createApi({
       }),
       invalidatesTags: ['Dogs'],
     }),
+
     deleteDog: builder.mutation({
       query: (id) => ({
         url: `dogs/${id}`,

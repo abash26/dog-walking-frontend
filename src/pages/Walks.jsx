@@ -9,6 +9,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  CircularProgress,
 } from '@mui/material';
 import { useState } from 'react';
 import { useGetDogsQuery } from '../features/dogs/dogsApi';
@@ -20,9 +21,9 @@ import {
 import { useGetMeQuery } from '../features/auth/authApi';
 
 export default function Walks() {
-  const { data: dogs } = useGetDogsQuery();
-  const { data: walks } = useGetWalksQuery();
-  const { data: user } = useGetMeQuery();
+  const { data: dogs, isLoading: dogsLoading } = useGetDogsQuery();
+  const { data: walks, isLoading: walksLoading } = useGetWalksQuery();
+  const { data: user, isLoading: userLoading } = useGetMeQuery();
 
   const [scheduleWalk] = useScheduleWalkMutation();
   const [cancelWalk] = useCancelWalkMutation();
@@ -34,14 +35,33 @@ export default function Walks() {
   });
 
   const handleRequest = async () => {
-    await scheduleWalk({
-      dogId: form.dogId,
-      ownerId: user.id,
-      walkerId: 1, // can be assigned later
-      duration: form.duration,
-      startTime: form.startTime,
-    });
+    if (!form.dogId || !form.startTime) {
+      alert('Please select a dog and start time');
+      return;
+    }
+
+    try {
+      await scheduleWalk({
+        dogId: form.dogId,
+        duration: Number(form.duration),
+        startTime: form.startTime,
+      }).unwrap();
+
+      setForm({ dogId: '', startTime: '', duration: 30 });
+    } catch (err) {
+      console.error(err);
+      alert('Failed to schedule walk');
+    }
   };
+
+  if (dogsLoading || walksLoading || userLoading) {
+    return (
+      <Container sx={{ mt: 4, textAlign: 'center' }}>
+        <CircularProgress />
+        <Typography sx={{ mt: 2 }}>Loading...</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -66,10 +86,27 @@ export default function Walks() {
           type='datetime-local'
           fullWidth
           sx={{ mt: 2 }}
+          value={form.startTime}
           onChange={(e) => setForm({ ...form, startTime: e.target.value })}
         />
 
-        <Button variant='contained' sx={{ mt: 2 }} onClick={handleRequest}>
+        <TextField
+          label='Duration (minutes)'
+          type='number'
+          fullWidth
+          sx={{ mt: 2 }}
+          value={form.duration}
+          onChange={(e) =>
+            setForm({ ...form, duration: Number(e.target.value) })
+          }
+        />
+
+        <Button
+          variant='contained'
+          sx={{ mt: 2 }}
+          onClick={handleRequest}
+          disabled={!form.dogId || !form.startTime}
+        >
           Request Walk
         </Button>
       </Paper>
@@ -78,6 +115,10 @@ export default function Walks() {
         My Walk Requests
       </Typography>
 
+      {walks?.filter((w) => w.ownerId === user?.id).length === 0 && (
+        <Typography sx={{ mt: 2 }}>No walks scheduled.</Typography>
+      )}
+
       <List>
         {walks
           ?.filter((w) => w.ownerId === user?.id)
@@ -85,15 +126,22 @@ export default function Walks() {
             <ListItem
               key={walk.id}
               secondaryAction={
-                walk.status === 'Scheduled' && (
-                  <Button color='error' onClick={() => cancelWalk(walk.id)}>
+                walk.status === 'Pending' && (
+                  <Button
+                    color='error'
+                    onClick={() => {
+                      if (window.confirm('Cancel this walk?')) {
+                        cancelWalk(walk.id);
+                      }
+                    }}
+                  >
                     Cancel
                   </Button>
                 )
               }
             >
               <ListItemText
-                primary={`Dog ID: ${walk.dogId}`}
+                primary={`Dog: ${dogs.find((d) => d.id === walk.dogId)?.name || walk.dogId}`}
                 secondary={`${new Date(walk.startTime).toLocaleString()} - ${
                   walk.status
                 }`}

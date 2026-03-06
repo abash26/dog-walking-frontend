@@ -3,9 +3,11 @@ import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
 import Dogs from './pages/Dogs';
 import Walks from './pages/Walks';
+import OwnerDashboard from './pages/OwnerDashboard';
+import WalkerDashboard from './pages/WalkerDashboard';
+import AvailableWalks from './pages/AvailableWalks';
 
 function App() {
   return (
@@ -14,18 +16,19 @@ function App() {
       <Routes>
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
+        {/* Owner Routes */}
         <Route
-          path='/'
+          path='/owner'
           element={
-            <ProtectedRoute>
-              <Dashboard />
+            <ProtectedRoute allowedRoles={['Owner']}>
+              <OwnerDashboard />
             </ProtectedRoute>
           }
         />
         <Route
           path='/dogs'
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['Owner']}>
               <Dogs />
             </ProtectedRoute>
           }
@@ -33,11 +36,38 @@ function App() {
         <Route
           path='/walks'
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['Owner']}>
               <Walks />
             </ProtectedRoute>
           }
         />
+
+        {/* Walker Routes */}
+        <Route
+          path='/walker'
+          element={
+            <ProtectedRoute allowedRoles={['Walker']}>
+              <WalkerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/available-walks'
+          element={
+            <ProtectedRoute allowedRoles={['Walker']}>
+              <AvailableWalks />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/my-walks'
+          element={
+            <ProtectedRoute allowedRoles={['Walker']}>
+              <Walks />
+            </ProtectedRoute>
+          }
+        />
+        <Route path='*' element={<div>404 Not Found</div>} />
       </Routes>
     </>
   );

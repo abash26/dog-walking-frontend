@@ -10,13 +10,17 @@ import {
   ToggleButtonGroup,
 } from '@mui/material';
 import { useState } from 'react';
-import { useRegisterMutation } from '../features/auth/authApi';
+import {
+  useRegisterMutation,
+  useLazyGetMeQuery,
+} from '../features/auth/authApi';
 import { useDispatch } from 'react-redux';
-import { setCredentials } from '../features/auth/authSlice';
+import { setToken, setUser } from '../features/auth/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function Register() {
   const [register, { isLoading, error }] = useRegisterMutation();
+  const [getMe] = useLazyGetMeQuery();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -37,6 +41,7 @@ export default function Register() {
     }
 
     try {
+      // Step 1: register and get token
       const result = await register({
         name: form.name,
         email: form.email,
@@ -44,8 +49,17 @@ export default function Register() {
         role: form.role,
       }).unwrap();
 
-      dispatch(setCredentials(result.token));
-      navigate('/');
+      // Step 2: store token in Redux
+      dispatch(setToken(result.token));
+
+      // Step 3: fetch user info after token is set
+      const user = await getMe().unwrap();
+      dispatch(setUser(user));
+
+      // Step 4: redirect based on role
+      if (user.role === 'Owner') navigate('/owner');
+      else if (user.role === 'Walker') navigate('/walker');
+      else navigate('/');
     } catch (err) {
       console.error(err);
     }
@@ -71,11 +85,9 @@ export default function Register() {
           value={form.role}
           exclusive
           fullWidth
-          onChange={(e, value) => {
-            if (value !== null) {
-              setForm({ ...form, role: value });
-            }
-          }}
+          onChange={(e, value) =>
+            value !== null && setForm({ ...form, role: value })
+          }
           sx={{ mb: 2 }}
         >
           <ToggleButton value='Owner'>🐶 Pet Parent</ToggleButton>
@@ -91,7 +103,6 @@ export default function Register() {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
-
           <TextField
             fullWidth
             label='Email'
@@ -100,7 +111,6 @@ export default function Register() {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
-
           <TextField
             fullWidth
             label='Password'
@@ -110,7 +120,6 @@ export default function Register() {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
-
           <TextField
             fullWidth
             label='Confirm Password'

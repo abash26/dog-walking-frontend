@@ -12,6 +12,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -24,12 +26,11 @@ import {
 } from '../features/dogs/dogsApi';
 
 export default function Dogs() {
-  const { data: dogs } = useGetDogsQuery();
+  const { data: dogs, isLoading } = useGetDogsQuery();
   const [createDog] = useCreateDogMutation();
   const [deleteDog] = useDeleteDogMutation();
   const [updateDog] = useUpdateDogMutation();
 
-  // Form for adding a new dog
   const [newDog, setNewDog] = useState({
     name: '',
     breed: '',
@@ -38,11 +39,9 @@ export default function Dogs() {
     specialNeeds: '',
   });
 
-  // For editing existing dog
   const [editOpen, setEditOpen] = useState(false);
   const [selectedDog, setSelectedDog] = useState(null);
 
-  // Create dog
   const handleCreate = async () => {
     if (!newDog.name || !newDog.age || !newDog.size) {
       alert('Please fill Name, Age, and Size');
@@ -50,12 +49,17 @@ export default function Dogs() {
     }
     await createDog({
       ...newDog,
-      age: parseInt(newDog.age), // make sure age is number
+      age: parseInt(newDog.age),
     });
-    setNewDog({ name: '', breed: '', age: '', size: '', specialNeeds: '' });
+    setNewDog({
+      name: '',
+      breed: '',
+      age: '',
+      size: '',
+      specialNeeds: '',
+    });
   };
 
-  // Update dog
   const handleUpdate = async () => {
     await updateDog({
       id: selectedDog.id,
@@ -65,11 +69,12 @@ export default function Dogs() {
     setEditOpen(false);
   };
 
+  if (isLoading) return <Typography sx={{ mt: 4 }}>Loading dogs...</Typography>;
+
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant='h4'>My Dogs</Typography>
 
-      {/* Add Dog Form */}
       <Paper sx={{ p: 3, mt: 3 }}>
         <TextField
           label='Name'
@@ -77,12 +82,14 @@ export default function Dogs() {
           onChange={(e) => setNewDog({ ...newDog, name: e.target.value })}
           sx={{ mr: 2, mb: 1 }}
         />
+
         <TextField
           label='Breed'
           value={newDog.breed}
           onChange={(e) => setNewDog({ ...newDog, breed: e.target.value })}
           sx={{ mr: 2, mb: 1 }}
         />
+
         <TextField
           label='Age'
           type='number'
@@ -90,12 +97,19 @@ export default function Dogs() {
           onChange={(e) => setNewDog({ ...newDog, age: e.target.value })}
           sx={{ mr: 2, mb: 1 }}
         />
-        <TextField
-          label='Size'
+
+        <Select
           value={newDog.size}
           onChange={(e) => setNewDog({ ...newDog, size: e.target.value })}
-          sx={{ mr: 2, mb: 1 }}
-        />
+          displayEmpty
+          sx={{ mr: 2, mb: 1, minWidth: 120 }}
+        >
+          <MenuItem value=''>Size</MenuItem>
+          <MenuItem value='Small'>Small</MenuItem>
+          <MenuItem value='Medium'>Medium</MenuItem>
+          <MenuItem value='Large'>Large</MenuItem>
+        </Select>
+
         <TextField
           label='Special Needs'
           value={newDog.specialNeeds}
@@ -104,12 +118,16 @@ export default function Dogs() {
           }
           sx={{ mr: 2, mb: 1 }}
         />
-        <Button variant='contained' onClick={handleCreate} sx={{ mt: 1 }}>
+
+        <Button variant='contained' onClick={handleCreate}>
           Add Dog
         </Button>
       </Paper>
 
-      {/* List of Dogs */}
+      {dogs?.length === 0 && (
+        <Typography sx={{ mt: 3 }}>No dogs added yet.</Typography>
+      )}
+
       <List>
         {dogs?.map((dog) => (
           <ListItem
@@ -118,13 +136,20 @@ export default function Dogs() {
               <>
                 <IconButton
                   onClick={() => {
-                    setSelectedDog({ ...dog }); // copy dog object
+                    setSelectedDog({ ...dog });
                     setEditOpen(true);
                   }}
                 >
                   <EditIcon />
                 </IconButton>
-                <IconButton onClick={() => deleteDog(dog.id)}>
+
+                <IconButton
+                  onClick={() => {
+                    if (window.confirm('Delete this dog?')) {
+                      deleteDog(dog.id);
+                    }
+                  }}
+                >
                   <DeleteIcon />
                 </IconButton>
               </>
@@ -132,17 +157,17 @@ export default function Dogs() {
           >
             <ListItemText
               primary={dog.name}
-              secondary={`Breed: ${dog.breed || '-'}, Age: ${dog.age}, Size: ${dog.size}${
-                dog.specialNeeds ? ', Needs: ' + dog.specialNeeds : ''
-              }`}
+              secondary={`Breed: ${dog.breed || '-'}, Age: ${dog.age}, Size: ${
+                dog.size
+              }${dog.specialNeeds ? ', Needs: ' + dog.specialNeeds : ''}`}
             />
           </ListItem>
         ))}
       </List>
 
-      {/* Edit Dog Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)}>
         <DialogTitle>Edit Dog</DialogTitle>
+
         <DialogContent
           sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}
         >
@@ -153,6 +178,7 @@ export default function Dogs() {
               setSelectedDog({ ...selectedDog, name: e.target.value })
             }
           />
+
           <TextField
             label='Breed'
             value={selectedDog?.breed || ''}
@@ -160,6 +186,7 @@ export default function Dogs() {
               setSelectedDog({ ...selectedDog, breed: e.target.value })
             }
           />
+
           <TextField
             label='Age'
             type='number'
@@ -168,13 +195,18 @@ export default function Dogs() {
               setSelectedDog({ ...selectedDog, age: e.target.value })
             }
           />
-          <TextField
-            label='Size'
+
+          <Select
             value={selectedDog?.size || ''}
             onChange={(e) =>
               setSelectedDog({ ...selectedDog, size: e.target.value })
             }
-          />
+          >
+            <MenuItem value='Small'>Small</MenuItem>
+            <MenuItem value='Medium'>Medium</MenuItem>
+            <MenuItem value='Large'>Large</MenuItem>
+          </Select>
+
           <TextField
             label='Special Needs'
             value={selectedDog?.specialNeeds || ''}
@@ -183,6 +215,7 @@ export default function Dogs() {
             }
           />
         </DialogContent>
+
         <DialogActions>
           <Button onClick={() => setEditOpen(false)}>Cancel</Button>
           <Button variant='contained' onClick={handleUpdate}>

@@ -1,15 +1,9 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { baseQuery } from '../baseApi';
 
 export const walksApi = createApi({
   reducerPath: 'walksApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: 'https://localhost:7188/',
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      return headers;
-    },
-  }),
+  baseQuery,
   tagTypes: ['Walks'],
   endpoints: (builder) => ({
     getWalks: builder.query({
@@ -21,6 +15,17 @@ export const walksApi = createApi({
         url: 'walks',
         method: 'POST',
         body: walk,
+      }),
+      invalidatesTags: ['Walks'],
+    }),
+    getAvailableWalks: builder.query({
+      query: () => 'walks/walker/available',
+      providesTags: ['Walks'],
+    }),
+    acceptWalk: builder.mutation({
+      query: (id) => ({
+        url: `walks/walker/${id}/accept`,
+        method: 'PUT',
       }),
       invalidatesTags: ['Walks'],
     }),
@@ -44,6 +49,8 @@ export const walksApi = createApi({
 export const {
   useGetWalksQuery,
   useScheduleWalkMutation,
+  useGetAvailableWalksQuery,
+  useAcceptWalkMutation,
   useCompleteWalkMutation,
   useCancelWalkMutation,
 } = walksApi;
