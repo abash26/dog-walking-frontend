@@ -16,17 +16,17 @@ import { useGetDogsQuery } from '../features/dogs/dogsApi';
 import {
   useGetWalksQuery,
   useScheduleWalkMutation,
-  useCancelWalkMutation,
+  useCancelWalkByOwnerMutation,
 } from '../features/walks/walksApi';
-import { useGetMeQuery } from '../features/auth/authApi';
 
 export default function Walks() {
   const { data: dogs, isLoading: dogsLoading } = useGetDogsQuery();
-  const { data: walks, isLoading: walksLoading } = useGetWalksQuery();
-  const { data: user, isLoading: userLoading } = useGetMeQuery();
+  const { data: walks, isLoading: walksLoading } = useGetWalksQuery(undefined, {
+    pollingInterval: 15000,
+  });
 
   const [scheduleWalk] = useScheduleWalkMutation();
-  const [cancelWalk] = useCancelWalkMutation();
+  const [cancelWalk] = useCancelWalkByOwnerMutation();
 
   const [form, setForm] = useState({
     dogId: '',
@@ -39,12 +39,15 @@ export default function Walks() {
       alert('Please select a dog and start time');
       return;
     }
+    const hours = Math.floor(form.duration / 60);
+    const minutes = form.duration % 60;
+    const durationStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
 
     try {
       await scheduleWalk({
         dogId: form.dogId,
-        duration: Number(form.duration),
         startTime: form.startTime,
+        duration: durationStr,
       }).unwrap();
 
       setForm({ dogId: '', startTime: '', duration: 30 });
@@ -54,7 +57,7 @@ export default function Walks() {
     }
   };
 
-  if (dogsLoading || walksLoading || userLoading) {
+  if (dogsLoading || walksLoading) {
     return (
       <Container sx={{ mt: 4, textAlign: 'center' }}>
         <CircularProgress />
@@ -115,18 +118,26 @@ export default function Walks() {
         My Walk Requests
       </Typography>
 
-      {walks?.filter((w) => w.ownerId === user?.id).length === 0 && (
+      {walks?.length === 0 && (
         <Typography sx={{ mt: 2 }}>No walks scheduled.</Typography>
       )}
 
       <List>
-        {walks
-          ?.filter((w) => w.ownerId === user?.id)
-          .map((walk) => (
+        {walks.map((walk) => {
+          const statusMap = {
+            0: 'Pending',
+            1: 'Accepted',
+            2: 'InProgress',
+            3: 'Completed',
+            4: 'Cancelled',
+          };
+          const statusText = statusMap[walk.status] || 'Unknown';
+
+          return (
             <ListItem
               key={walk.id}
               secondaryAction={
-                walk.status === 'Pending' && (
+                statusText === 'Pending' && (
                   <Button
                     color='error'
                     onClick={() => {
@@ -141,13 +152,17 @@ export default function Walks() {
               }
             >
               <ListItemText
-                primary={`Dog: ${dogs.find((d) => d.id === walk.dogId)?.name || walk.dogId}`}
-                secondary={`${new Date(walk.startTime).toLocaleString()} - ${
-                  walk.status
-                }`}
+                primary={`Dog: ${walk.dogName || walk.dogId}`}
+                secondary={
+                  <>
+                    {new Date(walk.startTime).toLocaleString()} <br />
+                    Status: <strong>{statusText}</strong>
+                  </>
+                }
               />
             </ListItem>
-          ))}
+          );
+        })}
       </List>
     </Container>
   );

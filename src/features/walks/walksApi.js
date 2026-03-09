@@ -6,20 +6,34 @@ export const walksApi = createApi({
   baseQuery,
   tagTypes: ['Walks'],
   endpoints: (builder) => ({
+    // Owner endpoints
     getWalks: builder.query({
-      query: () => 'walks',
+      query: () => 'walks/owner/mine',
       providesTags: ['Walks'],
     }),
     scheduleWalk: builder.mutation({
       query: (walk) => ({
-        url: 'walks',
+        url: 'walks/owner',
         method: 'POST',
         body: walk,
       }),
       invalidatesTags: ['Walks'],
     }),
+    cancelWalkByOwner: builder.mutation({
+      query: (id) => ({
+        url: `walks/owner/${id}/cancel`,
+        method: 'PUT',
+      }),
+      invalidatesTags: ['Walks'],
+    }),
+
+    // Walker endpoints
     getAvailableWalks: builder.query({
       query: () => 'walks/walker/available',
+      providesTags: ['Walks'],
+    }),
+    getWalksByWalker: builder.query({
+      query: () => 'walks/walker/mine',
       providesTags: ['Walks'],
     }),
     acceptWalk: builder.mutation({
@@ -29,16 +43,23 @@ export const walksApi = createApi({
       }),
       invalidatesTags: ['Walks'],
     }),
-    completeWalk: builder.mutation({
+    startWalk: builder.mutation({
       query: (id) => ({
-        url: `walks/${id}/complete`,
+        url: `walks/walker/${id}/start`,
         method: 'PUT',
       }),
       invalidatesTags: ['Walks'],
     }),
-    cancelWalk: builder.mutation({
+    completeWalk: builder.mutation({
       query: (id) => ({
-        url: `walks/${id}/cancel`,
+        url: `walks/walker/${id}/complete`,
+        method: 'PUT',
+      }),
+      invalidatesTags: ['Walks'],
+    }),
+    cancelWalkByWalker: builder.mutation({
+      query: (id) => ({
+        url: `walks/walker/${id}/cancel`,
         method: 'PUT',
       }),
       invalidatesTags: ['Walks'],
@@ -49,8 +70,11 @@ export const walksApi = createApi({
 export const {
   useGetWalksQuery,
   useScheduleWalkMutation,
+  useCancelWalkByOwnerMutation,
   useGetAvailableWalksQuery,
+  useGetWalksByWalkerQuery,
   useAcceptWalkMutation,
+  useStartWalkMutation,
   useCompleteWalkMutation,
-  useCancelWalkMutation,
+  useCancelWalkByWalkerMutation,
 } = walksApi;

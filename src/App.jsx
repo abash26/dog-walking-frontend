@@ -8,6 +8,7 @@ import Walks from './pages/Walks';
 import OwnerDashboard from './pages/OwnerDashboard';
 import WalkerDashboard from './pages/WalkerDashboard';
 import AvailableWalks from './pages/AvailableWalks';
+import MyWalks from './pages/MyWalks';
 
 function App() {
   return (
@@ -63,7 +64,7 @@ function App() {
           path='/my-walks'
           element={
             <ProtectedRoute allowedRoles={['Walker']}>
-              <Walks />
+              <MyWalks />
             </ProtectedRoute>
           }
         />
