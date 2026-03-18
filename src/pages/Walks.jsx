@@ -10,6 +10,7 @@ import {
   ListItem,
   ListItemText,
   CircularProgress,
+  Pagination,
 } from '@mui/material';
 import { useState } from 'react';
 import { useGetDogsQuery } from '../features/dogs/dogsApi';
@@ -21,9 +22,15 @@ import {
 
 export default function Walks() {
   const { data: dogs, isLoading: dogsLoading } = useGetDogsQuery();
-  const { data: walks, isLoading: walksLoading } = useGetWalksQuery(undefined, {
-    pollingInterval: 15000,
-  });
+
+  const [page, setPage] = useState(1);
+
+  const { data: walks, isLoading: walksLoading } = useGetWalksQuery(
+    { page, pageSize: 10 },
+    {
+      pollingInterval: 15000,
+    },
+  );
 
   const [scheduleWalk] = useScheduleWalkMutation();
   const [cancelWalk] = useCancelWalkByOwnerMutation();
@@ -39,9 +46,12 @@ export default function Walks() {
       alert('Please select a dog and start time');
       return;
     }
+
     const hours = Math.floor(form.duration / 60);
     const minutes = form.duration % 60;
-    const durationStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+    const durationStr = `${hours
+      .toString()
+      .padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
 
     try {
       await scheduleWalk({
@@ -118,26 +128,19 @@ export default function Walks() {
         My Walk Requests
       </Typography>
 
-      {walks?.length === 0 && (
+      {walks?.items?.length === 0 && (
         <Typography sx={{ mt: 2 }}>No walks scheduled.</Typography>
       )}
 
       <List>
-        {walks.map((walk) => {
-          const statusMap = {
-            0: 'Pending',
-            1: 'Accepted',
-            2: 'InProgress',
-            3: 'Completed',
-            4: 'Cancelled',
-          };
-          const statusText = statusMap[walk.status] || 'Unknown';
+        {walks?.items?.map((walk) => {
+          const prettyStatus = walk.status.replace('InProgress', 'In Progress');
 
           return (
             <ListItem
               key={walk.id}
               secondaryAction={
-                statusText === 'Pending' && (
+                walk.status === 'Pending' && (
                   <Button
                     color='error'
                     onClick={() => {
@@ -152,11 +155,11 @@ export default function Walks() {
               }
             >
               <ListItemText
-                primary={`Dog: ${walk.dogName || walk.dogId}`}
+                primary={`Dog: ${walk.dogName}`}
                 secondary={
                   <>
                     {new Date(walk.startTime).toLocaleString()} <br />
-                    Status: <strong>{statusText}</strong>
+                    Status: <strong>{prettyStatus}</strong>
                   </>
                 }
               />
@@ -164,6 +167,15 @@ export default function Walks() {
           );
         })}
       </List>
+
+      {walks && (
+        <Pagination
+          count={Math.ceil(walks.totalCount / walks.pageSize)}
+          page={page}
+          onChange={(e, value) => setPage(value)}
+          sx={{ mt: 3 }}
+        />
+      )}
     </Container>
   );
 }

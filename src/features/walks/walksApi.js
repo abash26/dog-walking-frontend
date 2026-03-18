@@ -8,7 +8,8 @@ export const walksApi = createApi({
   endpoints: (builder) => ({
     // Owner endpoints
     getWalks: builder.query({
-      query: () => 'walks/owner/mine',
+      query: ({ page = 1, pageSize = 10 }) =>
+        `walks/owner/mine?page=${page}&pageSize=${pageSize}`,
       providesTags: ['Walks'],
     }),
     scheduleWalk: builder.mutation({

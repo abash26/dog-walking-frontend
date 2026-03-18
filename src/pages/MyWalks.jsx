@@ -40,23 +40,6 @@ export default function MyWalks() {
     );
   }
 
-  const getStatusDisplay = (status) => {
-    switch (status) {
-      case 'Pending':
-        return '⏳ Pending';
-      case 'Accepted':
-        return '✅ Accepted';
-      case 'InProgress':
-        return '🚶 In Progress';
-      case 'Completed':
-        return '🏁 Completed';
-      case 'Cancelled':
-        return '❌ Cancelled';
-      default:
-        return status;
-    }
-  };
-
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant='h4' gutterBottom>
@@ -114,9 +97,7 @@ export default function MyWalks() {
                 primary={`Dog: ${walk.dogName}`}
                 secondary={`Start: ${new Date(
                   walk.startTime,
-                ).toLocaleString()} | Duration: ${walk.duration} min | Status: ${getStatusDisplay(
-                  walk.status,
-                )}`}
+                ).toLocaleString()} | Duration: ${walk.duration} min | Status: ${walk.status}`}
               />
             </ListItem>
           </Paper>
