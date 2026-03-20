@@ -1,23 +1,25 @@
 import {
   Container,
   Typography,
-  TextField,
   Button,
-  List,
-  ListItem,
-  ListItemText,
+  Card,
+  CardContent,
   IconButton,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  TextField,
   Select,
   MenuItem,
+  Stack,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import { useState } from 'react';
+
 import {
   useGetDogsQuery,
   useCreateDogMutation,
@@ -26,146 +28,165 @@ import {
 } from '../features/dogs/dogsApi';
 
 export default function Dogs() {
-  const { data: dogs, isLoading } = useGetDogsQuery();
+  const { data: dogs } = useGetDogsQuery();
+
   const [createDog] = useCreateDogMutation();
   const [deleteDog] = useDeleteDogMutation();
   const [updateDog] = useUpdateDogMutation();
 
-  const [newDog, setNewDog] = useState({
+  const [open, setOpen] = useState(false);
+  const [editDog, setEditDog] = useState(null);
+
+  const [form, setForm] = useState({
     name: '',
     breed: '',
     age: '',
     size: '',
-    specialNeeds: '',
   });
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [selectedDog, setSelectedDog] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
 
   const handleCreate = async () => {
-    if (!newDog.name || !newDog.age || !newDog.size) {
-      alert('Please fill Name, Age, and Size');
+    if (!form.name || !form.age || !form.size) {
+      setSnackbar({
+        open: true,
+        message: 'Please fill required fields',
+        severity: 'error',
+      });
       return;
     }
+
     await createDog({
-      ...newDog,
-      age: parseInt(newDog.age),
+      ...form,
+      age: Number(form.age),
     });
-    setNewDog({
-      name: '',
-      breed: '',
-      age: '',
-      size: '',
-      specialNeeds: '',
+
+    setForm({ name: '', breed: '', age: '', size: '' });
+    setOpen(false);
+
+    setSnackbar({
+      open: true,
+      message: 'Dog added 🐾',
+      severity: 'success',
     });
   };
 
   const handleUpdate = async () => {
+    if (!editDog.name || !editDog.age || !editDog.size) return;
+
     await updateDog({
-      id: selectedDog.id,
-      ...selectedDog,
-      age: parseInt(selectedDog.age),
+      ...editDog,
+      age: Number(editDog.age),
     });
-    setEditOpen(false);
+
+    setEditDog(null);
+
+    setSnackbar({
+      open: true,
+      message: 'Dog updated ✏️',
+      severity: 'success',
+    });
   };
 
-  if (isLoading) return <Typography sx={{ mt: 4 }}>Loading dogs...</Typography>;
+  const handleDelete = async (id) => {
+    await deleteDog(id);
+
+    setSnackbar({
+      open: true,
+      message: 'Dog removed 🗑',
+      severity: 'success',
+    });
+  };
 
   return (
     <Container sx={{ mt: 4 }}>
-      <Typography variant='h4'>My Dogs</Typography>
+      <Typography variant='h4'>My Dogs 🐶</Typography>
 
-      <Paper sx={{ p: 3, mt: 3 }}>
-        <TextField
-          label='Name'
-          value={newDog.name}
-          onChange={(e) => setNewDog({ ...newDog, name: e.target.value })}
-          sx={{ mr: 2, mb: 1 }}
-        />
+      <Button variant='contained' sx={{ mt: 2 }} onClick={() => setOpen(true)}>
+        + Add Dog
+      </Button>
 
-        <TextField
-          label='Breed'
-          value={newDog.breed}
-          onChange={(e) => setNewDog({ ...newDog, breed: e.target.value })}
-          sx={{ mr: 2, mb: 1 }}
-        />
-
-        <TextField
-          label='Age'
-          type='number'
-          value={newDog.age}
-          onChange={(e) => setNewDog({ ...newDog, age: e.target.value })}
-          sx={{ mr: 2, mb: 1 }}
-        />
-
-        <Select
-          value={newDog.size}
-          onChange={(e) => setNewDog({ ...newDog, size: e.target.value })}
-          displayEmpty
-          sx={{ mr: 2, mb: 1, minWidth: 120 }}
-        >
-          <MenuItem value=''>Size</MenuItem>
-          <MenuItem value='Small'>Small</MenuItem>
-          <MenuItem value='Medium'>Medium</MenuItem>
-          <MenuItem value='Large'>Large</MenuItem>
-        </Select>
-
-        <TextField
-          label='Special Needs'
-          value={newDog.specialNeeds}
-          onChange={(e) =>
-            setNewDog({ ...newDog, specialNeeds: e.target.value })
-          }
-          sx={{ mr: 2, mb: 1 }}
-        />
-
-        <Button variant='contained' onClick={handleCreate}>
-          Add Dog
-        </Button>
-      </Paper>
-
-      {dogs?.length === 0 && (
-        <Typography sx={{ mt: 3 }}>No dogs added yet.</Typography>
+      {!dogs?.length && (
+        <Typography sx={{ mt: 4 }}>No dogs yet — add your first 🐾</Typography>
       )}
 
-      <List>
+      <Stack spacing={2} sx={{ mt: 3 }}>
         {dogs?.map((dog) => (
-          <ListItem
-            key={dog.id}
-            secondaryAction={
-              <>
-                <IconButton
-                  onClick={() => {
-                    setSelectedDog({ ...dog });
-                    setEditOpen(true);
-                  }}
-                >
+          <Card key={dog.id} sx={{ borderRadius: 3 }}>
+            <CardContent
+              sx={{ display: 'flex', justifyContent: 'space-between' }}
+            >
+              <div>
+                <Typography variant='h6'>{dog.name}</Typography>
+                <Typography color='text.secondary'>
+                  {dog.breed || 'Unknown'} • {dog.age} yrs • {dog.size}
+                </Typography>
+              </div>
+
+              <div>
+                <IconButton onClick={() => setEditDog({ ...dog })}>
                   <EditIcon />
                 </IconButton>
 
-                <IconButton
-                  onClick={() => {
-                    if (window.confirm('Delete this dog?')) {
-                      deleteDog(dog.id);
-                    }
-                  }}
-                >
+                <IconButton onClick={() => handleDelete(dog.id)}>
                   <DeleteIcon />
                 </IconButton>
-              </>
-            }
-          >
-            <ListItemText
-              primary={dog.name}
-              secondary={`Breed: ${dog.breed || '-'}, Age: ${dog.age}, Size: ${
-                dog.size
-              }${dog.specialNeeds ? ', Needs: ' + dog.specialNeeds : ''}`}
-            />
-          </ListItem>
+              </div>
+            </CardContent>
+          </Card>
         ))}
-      </List>
+      </Stack>
 
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)}>
+      <Dialog open={open} onClose={() => setOpen(false)}>
+        <DialogTitle>Add Dog</DialogTitle>
+
+        <DialogContent
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}
+        >
+          <TextField
+            label='Name'
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+
+          <TextField
+            label='Breed'
+            value={form.breed}
+            onChange={(e) => setForm({ ...form, breed: e.target.value })}
+          />
+
+          <TextField
+            label='Age'
+            type='number'
+            value={form.age}
+            onChange={(e) => setForm({ ...form, age: e.target.value })}
+          />
+
+          <Select
+            value={form.size}
+            displayEmpty
+            onChange={(e) => setForm({ ...form, size: e.target.value })}
+          >
+            <MenuItem value=''>Select size</MenuItem>
+            <MenuItem value='Small'>Small</MenuItem>
+            <MenuItem value='Medium'>Medium</MenuItem>
+            <MenuItem value='Large'>Large</MenuItem>
+          </Select>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant='contained' onClick={handleCreate}>
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!editDog} onClose={() => setEditDog(null)}>
         <DialogTitle>Edit Dog</DialogTitle>
 
         <DialogContent
@@ -173,56 +194,48 @@ export default function Dogs() {
         >
           <TextField
             label='Name'
-            value={selectedDog?.name || ''}
-            onChange={(e) =>
-              setSelectedDog({ ...selectedDog, name: e.target.value })
-            }
+            value={editDog?.name || ''}
+            onChange={(e) => setEditDog({ ...editDog, name: e.target.value })}
           />
 
           <TextField
             label='Breed'
-            value={selectedDog?.breed || ''}
-            onChange={(e) =>
-              setSelectedDog({ ...selectedDog, breed: e.target.value })
-            }
+            value={editDog?.breed || ''}
+            onChange={(e) => setEditDog({ ...editDog, breed: e.target.value })}
           />
 
           <TextField
             label='Age'
             type='number'
-            value={selectedDog?.age || ''}
-            onChange={(e) =>
-              setSelectedDog({ ...selectedDog, age: e.target.value })
-            }
+            value={editDog?.age || ''}
+            onChange={(e) => setEditDog({ ...editDog, age: e.target.value })}
           />
 
           <Select
-            value={selectedDog?.size || ''}
-            onChange={(e) =>
-              setSelectedDog({ ...selectedDog, size: e.target.value })
-            }
+            value={editDog?.size || ''}
+            onChange={(e) => setEditDog({ ...editDog, size: e.target.value })}
           >
             <MenuItem value='Small'>Small</MenuItem>
             <MenuItem value='Medium'>Medium</MenuItem>
             <MenuItem value='Large'>Large</MenuItem>
           </Select>
-
-          <TextField
-            label='Special Needs'
-            value={selectedDog?.specialNeeds || ''}
-            onChange={(e) =>
-              setSelectedDog({ ...selectedDog, specialNeeds: e.target.value })
-            }
-          />
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button onClick={() => setEditDog(null)}>Cancel</Button>
           <Button variant='contained' onClick={handleUpdate}>
             Save
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+      >
+        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
+      </Snackbar>
     </Container>
   );
 }
